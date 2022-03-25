@@ -1,0 +1,14 @@
+{
+  "name": "aws-lambda-bitbucket-pipeline",
+  "version": "1.0.0",
+  "description": "AWS Nodejs Lambda Template - Bitbucket Pipeline",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kanish Malviya",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1"
+  }
+}

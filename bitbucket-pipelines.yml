@@ -1,0 +1,53 @@
+image: node:16.14.0
+
+pipelines:
+  branches:
+    master:
+      - step:
+          name: Build and package
+          caches:
+            - node
+          script:
+            - npm install
+            - apt-get update && apt-get install -y zip
+            - zip code.zip -r * .[^.]* -x *.git* -x bitbucket-pipelines.yml -x README.md
+          artifacts:
+            - code.zip
+
+      - step:
+          name: Update Lambda code
+          caches:
+            - docker
+          script:
+            - pipe: atlassian/aws-lambda-deploy:0.2.1
+              variables:
+                AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+                AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+                AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+                FUNCTION_NAME: 'lambda-pipeline'
+                COMMAND: 'update'
+                ZIP_FILE: 'code.zip'
+
+          # The pipe exports the newly published Lambda version to a file.
+          artifacts:
+            - pipe.meta.env
+
+      - step:
+          name: Deploy to Production
+          deployment: production
+          caches:
+            - docker
+          script:
+          # Read the 'function_version' from the update pipe into environment variables.
+          - source pipe.meta.env
+          # Point the 'production' alias to the function.
+          - pipe: atlassian/aws-lambda-deploy:0.2.1
+            variables:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+              FUNCTION_NAME: 'lambda-pipeline'
+              COMMAND: 'alias'
+              ALIAS: 'production'
+              VERSION: '${function_version}'
+
